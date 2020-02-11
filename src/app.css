@@ -1,0 +1,49 @@
+.app-container{
+    margin: 0 75px;
+    font-size: 13px;
+}
+
+.row-container{
+    border: 1px solid black;
+    background-color: lightgrey;
+    padding: 5px;
+    margin: 5px;
+    width: 700px;
+    border-radius: 10px;
+}
+
+.column{
+    display: table-cell;
+    vertical-align: middle;
+}
+
+#column1 {
+    width: 150px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+#column2 {
+    width: 180px;
+}
+
+#column3 {
+    width: 200px;
+}
+
+#column4 {
+    width: 155px;
+}
+
+.input-text{
+    width: 70px;
+}
+
+.input-radio{
+    margin: 0;
+}
+
+.option-container{
+    display: table;
+    padding: 3px;
+}
