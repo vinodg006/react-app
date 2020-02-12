@@ -10,6 +10,8 @@ const mapNames = {
   Amplitude: "amplitude"
 };
 
+let fileData = [];
+
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -17,6 +19,7 @@ class App extends React.Component {
     this.state = {
       start_time: 0,
       end_time: 0,
+      file: "",
       mute: {
         function: "All inputs",
         scope: "Whole File",
@@ -54,14 +57,12 @@ class App extends React.Component {
   }
 
   onFunctionChange(e, name) {
-    console.log(e.target.value, "e");
     this.setState({
       [name]: { ...this.state[name], function: e.target.value }
     });
   }
 
   onScopeChange(e, name) {
-    console.log(e.target.value, "elkl;kk;;");
     this.setState({
       [name]: { ...this.state[name], scope: e.target.value }
     });
@@ -136,28 +137,44 @@ class App extends React.Component {
   }
 
   handleFile(e) {
-    console.log(e.target.files[0], "Vinod");
     var reader = new FileReader();
 
-    // Read file into memory as UTF-16
+    // Read file into memory
     reader.readAsText(e.target.files[0]);
     reader.onload = () => {
       const file = reader.result;
+      let startIndex = -1;
+      this.setState({ file });
       const allLines = file.split(/\r\n|\n/);
       // Reading line by line
-      allLines.forEach(line => {
-        console.log(line);
+      allLines.forEach((line, index) => {
+        // console.log(line, index);
         if (line.match(/main_gameplay_start/g)) {
           this.setState({
-            start_time: +line.slice(line.indexOf(":") + 1)
+            start_time: +line.slice(line.indexOf(":") + 1, -1)
           });
         }
         if (line.match(/main_gameplay_end/g)) {
           this.setState({
-            end_time: +line.slice(line.indexOf(":") + 1)
+            end_time: +line.slice(line.indexOf(":") + 1, -1)
           });
         }
+        if (line.match(/GAME_CONFIG_END/g)) {
+          startIndex = index;
+        }
+        if (startIndex !== -1 && index > startIndex) {
+          const start = +line.slice(0, line.indexOf("|"));
+          const linemstart = line.slice(line.indexOf("|") + 1);
+          const end = +linemstart.slice(0, linemstart.indexOf("|"));
+          const linemend = linemstart.slice(linemstart.indexOf("|") + 1);
+          const type = linemend.slice(0, linemend.indexOf("|"));
+          const linemtype = linemend.slice(linemend.indexOf("|") + 1);
+          const lastdata = +linemtype.slice(0, linemtype.indexOf("|"));
+          const extradata = linemtype.slice(linemtype.indexOf("|") + 1);
+          fileData.push({ start, end, type, lastdata, extradata });
+        }
       });
+      console.log(fileData, "Vinod");
     };
 
     reader.onerror = function() {
@@ -166,10 +183,16 @@ class App extends React.Component {
   }
 
   render() {
-    console.log(this.state);
+    // console.log(this.state);
     return (
       <div className="app-container">
-        <input type="file" id="file" onChange={this.handleFile} />
+        <input type="file" id="file" onChange={this.handleFile.bind(this)} />
+        <div style={{ display: "inline-block", margin: "0 15px 0 0" }}>
+          Start: {this.state.start_time}
+        </div>
+        <div style={{ display: "inline-block" }}>
+          End: {this.state.end_time}
+        </div>
         {this.renderRow(data.mute, "Mute")}
         {this.renderRow(data.neutral, "Neutral")}
         {this.renderRow(data.expand_contract, "Expand/Contract")}
