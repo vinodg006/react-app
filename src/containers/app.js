@@ -183,9 +183,7 @@ class App extends React.Component {
       mute,
       neutral,
       expand_contract,
-      amplitude: {
-        params: { floor }
-      },
+      amplitude,
       shift
     } = this.state;
     switch (e.target.id) {
@@ -196,7 +194,11 @@ class App extends React.Component {
       case mapNames.Neutral: {
         console.log("2");
         fileData.forEach((val, index) => {
-          if (val.start >= neutral.start_time && val.end <= neutral.end_time) {
+          if (
+            val.start >= neutral.start_time &&
+            val.end <= neutral.end_time &&
+            val.type == "R"
+          ) {
             fileData[index].lastdata = 0.5;
           }
         });
@@ -212,12 +214,18 @@ class App extends React.Component {
         break;
       }
       case mapNames.Amplitude: {
-        console.log("5");
         fileData.forEach((val, index) => {
-          if (val.start >= neutral.start_time && val.end <= neutral.end_time) {
-            fileData[index].lastdata = 0.5;
+          if (
+            val.start >= amplitude.start_time &&
+            val.end <= amplitude.end_time &&
+            val.lastdata > amplitude.params.floor &&
+            val.type == "R"
+          ) {
+            fileData[index].lastdata *= amplitude.params.multiplier;
           }
         });
+
+        console.log(fileData);
         break;
       }
     }
@@ -290,7 +298,7 @@ class App extends React.Component {
   }
 
   render() {
-    console.log(this.state);
+    // console.log(this.state);
     return (
       <div className="app-container">
         <input type="file" id="file" onChange={this.handleFile.bind(this)} />
