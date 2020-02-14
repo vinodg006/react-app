@@ -10,6 +10,14 @@ const mapNames = {
   Amplitude: "amplitude"
 };
 
+const mapFunctions = {
+  "All inputs": "A",
+  Roll: "R",
+  Pitch: "P",
+  Tap: "TE",
+  Swipe: "SE"
+};
+
 let fileData = [];
 
 class App extends React.Component {
@@ -35,21 +43,21 @@ class App extends React.Component {
       expand_contract: {
         function: "Roll",
         scope: "Whole File",
-        params: { multiplier: 1.05 },
+        params: { multiplier: 1 },
         start_time: 0,
         end_time: 0
       },
       shift: {
         function: "All inputs",
         scope: "Whole File",
-        params: { time: -3.5687 },
+        params: { time: 1 },
         start_time: 0,
         end_time: 0
       },
       amplitude: {
         function: "Roll",
         scope: "Whole File",
-        params: { multiplier: 0.92, floor: 0.005 },
+        params: { multiplier: 1, floor: 0.005 },
         start_time: 0,
         end_time: 0
       }
@@ -189,19 +197,38 @@ class App extends React.Component {
     switch (e.target.id) {
       case mapNames.Mute: {
         console.log("1");
+        if (confirm("Are you sure you want to save ?")) {
+          fileData = fileData.filter(
+            val =>
+              !(
+                val.start >= mute.start_time &&
+                val.end <= mute.end_time &&
+                val.end - mute.end_time < mute.end_time - val.start &&
+                (val.type == mapFunctions[mute.function] ||
+                  mute.function == "All inputs")
+              )
+          );
+          console.log(fileData);
+        }
         break;
       }
       case mapNames.Neutral: {
         console.log("2");
-        fileData.forEach((val, index) => {
-          if (
-            val.start >= neutral.start_time &&
-            val.end <= neutral.end_time &&
-            val.type == "R"
-          ) {
-            fileData[index].lastdata = 0.5;
-          }
-        });
+
+        if (confirm("Are you sure you want to save ?")) {
+          fileData.forEach((val, index) => {
+            const startDiff = neutral.end_time - val.start;
+            const endDiff = val.end - neutral.end_time;
+            if (
+              val.start >= neutral.start_time &&
+              val.end <= neutral.end_time &&
+              endDiff < startDiff &&
+              val.type == "R"
+            ) {
+              fileData[index].lastdata = 0.5;
+            }
+          });
+        }
         console.log(fileData);
         break;
       }
@@ -214,17 +241,34 @@ class App extends React.Component {
         break;
       }
       case mapNames.Amplitude: {
-        fileData.forEach((val, index) => {
-          if (
-            val.start >= amplitude.start_time &&
-            val.end <= amplitude.end_time &&
-            val.lastdata > amplitude.params.floor &&
-            val.type == "R"
-          ) {
-            fileData[index].lastdata *= amplitude.params.multiplier;
-          }
-        });
-
+        if (confirm("Are you sure you want to save ?")) {
+          fileData.forEach((val, index) => {
+            const startDiff = amplitude.end_time - val.start;
+            const endDiff = val.end - amplitude.end_time;
+            if (
+              val.start >= amplitude.start_time &&
+              val.end <= amplitude.end_time &&
+              endDiff < startDiff &&
+              val.type == "R"
+            ) {
+              let newValue;
+              if (val.lastdata < 0.5) {
+                newValue = 0.5 - val.lastdata;
+                if (newValue > amplitude.params.floor) {
+                  newValue *= amplitude.params.multiplier;
+                  fileData[index].lastdata = 0.5 - newValue;
+                }
+              } else {
+                // Value is above 0.5
+                newValue = -0.5 + val.lastdata;
+                if (newValue > amplitude.params.floor) {
+                  newValue *= amplitude.params.multiplier;
+                  fileData[index].lastdata = 0.5 + newValue;
+                }
+              }
+            }
+          });
+        }
         console.log(fileData);
         break;
       }
