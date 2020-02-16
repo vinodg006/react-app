@@ -235,6 +235,25 @@ class App extends React.Component {
       }
       case mapNames["Expand/Contract"]: {
         console.log("3");
+        if (confirm("Are you sure you want to save ?")) {
+          if (expand_contract.function == "Pitch") {
+            let dataArr = [];
+            fileData.forEach((val, index) => {
+              const startDiff = expand_contract.end_time - val.start;
+              const endDiff = val.end - expand_contract.end_time;
+              if (
+                val.start >= expand_contract.start_time &&
+                val.end <= expand_contract.end_time &&
+                endDiff < startDiff &&
+                val.type == "TE"
+              ) {
+                dataArr.push({ data: fileData[index], index });
+              }
+            });
+            console.log(dataArr, "data");
+          }
+        }
+        console.log(fileData);
         break;
       }
       case mapNames.Shift: {
@@ -421,7 +440,7 @@ class App extends React.Component {
         <div style={{ display: "inline-block" }}>
           End: {this.state.end_time}
         </div>
-        <div style={{ display: "inline-block", float: "right" }}>
+        <div style={{ display: "inline-block", margin: "0 0 0 200px" }}>
           <input
             type="button"
             name="save"
