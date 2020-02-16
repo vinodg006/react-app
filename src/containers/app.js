@@ -1,6 +1,6 @@
 import React from "react";
-import { RowComponent } from "../components/RowComponent";
 import data from "../data";
+import { saveAs } from "file-saver";
 
 const mapNames = {
   Mute: "mute",
@@ -28,6 +28,10 @@ class App extends React.Component {
       start_time: 0,
       end_time: 0,
       file: "",
+      filename: "",
+      saveAsFile1: "",
+      saveAsFile2: "",
+      saveCount: 0,
       mute: {
         function: "All inputs",
         scope: "Whole File",
@@ -196,7 +200,6 @@ class App extends React.Component {
     } = this.state;
     switch (e.target.id) {
       case mapNames.Mute: {
-        console.log("1");
         if (confirm("Are you sure you want to save ?")) {
           fileData = fileData.filter(
             val =>
@@ -213,8 +216,6 @@ class App extends React.Component {
         break;
       }
       case mapNames.Neutral: {
-        console.log("2");
-
         if (confirm("Are you sure you want to save ?")) {
           fileData.forEach((val, index) => {
             const startDiff = neutral.end_time - val.start;
@@ -277,17 +278,21 @@ class App extends React.Component {
 
   handleFile(e) {
     var reader = new FileReader();
-
+    const targetfile = e.target.files[0];
+    this.setState({ filename: targetfile.name.slice(0, -4) });
     // Read file into memory
-    reader.readAsText(e.target.files[0]);
+    reader.readAsText(targetfile);
     reader.onload = () => {
       const file = reader.result;
-      let startIndex = -1;
+      let startIndex = -1,
+        stopStoring = false;
       this.setState({ file });
       const allLines = file.split(/\r\n|\n/);
       // Reading line by line
       allLines.forEach((line, index) => {
-        // console.log(line, index);
+        if (!stopStoring) {
+          this.setState({ saveAsFile1: this.state.saveAsFile1 + line + "\n" });
+        }
         if (line.match(/main_gameplay_start/g)) {
           const start_time = +line.slice(line.indexOf(":") + 1, -1);
           this.setState({
@@ -317,6 +322,7 @@ class App extends React.Component {
           });
         }
         if (line.match(/GAME_CONFIG_END/g)) {
+          stopStoring = true;
           startIndex = index;
         }
         if (startIndex !== -1 && index > startIndex) {
@@ -330,6 +336,10 @@ class App extends React.Component {
           const extradata = linemtype.slice(linemtype.indexOf("|") + 1);
           if (type === "R" || type === "P" || type === "SE" || type === "TE") {
             fileData.push({ start, end, type, lastdata, extradata });
+          } else {
+            this.setState({
+              saveAsFile2: this.state.saveAsFile2 + line + "\n"
+            });
           }
         }
       });
@@ -341,8 +351,67 @@ class App extends React.Component {
     };
   }
 
+  data2blob(data, isBase64) {
+    var chars = "";
+
+    if (isBase64) chars = atob(data);
+    else chars = data;
+
+    var bytes = new Array(chars.length);
+    for (var i = 0; i < chars.length; i++) {
+      bytes[i] = chars.charCodeAt(i);
+    }
+
+    var blob = new Blob([new Uint8Array(bytes)]);
+    return blob;
+  }
+
+  pad(number, length) {
+    var str = "" + number;
+    while (str.length < length) {
+      str = "0" + str;
+    }
+    return str;
+  }
+
+  setDataDigits(number) {
+    let beforeDecimal = this.pad(parseInt(number), 4);
+    let afterDecimal = number
+      .toFixed(3)
+      .slice(number.toString().indexOf(".") + 1);
+    return beforeDecimal + "." + afterDecimal;
+  }
+
+  formatData() {
+    let lines = "";
+    fileData.forEach(lineData => {
+      const { start, end, type, lastdata, extradata } = lineData;
+      lines +=
+        this.setDataDigits(start) +
+        "|" +
+        this.setDataDigits(end) +
+        "|" +
+        type +
+        "|" +
+        lastdata.toFixed(8) +
+        "|" +
+        extradata +
+        "\n";
+    });
+    return lines;
+  }
+
+  handleSaveAs() {
+    const { filename, saveCount, saveAsFile1, saveAsFile2 } = this.state;
+    this.setState({ saveCount: saveCount + 1 });
+    saveAs(
+      this.data2blob(saveAsFile1 + this.formatData() + saveAsFile2),
+      `${filename}[${saveCount}].mpf`
+    );
+  }
+
   render() {
-    // console.log(this.state);
+    // console.log(this.state.saveAsFile2);
     return (
       <div className="app-container">
         <input type="file" id="file" onChange={this.handleFile.bind(this)} />
@@ -351,6 +420,14 @@ class App extends React.Component {
         </div>
         <div style={{ display: "inline-block" }}>
           End: {this.state.end_time}
+        </div>
+        <div style={{ display: "inline-block", float: "right" }}>
+          <input
+            type="button"
+            name="save"
+            value="Save as"
+            onClick={this.handleSaveAs.bind(this)}
+          />
         </div>
         {this.renderRow(data.mute, "Mute")}
         {this.renderRow(data.neutral, "Neutral")}
