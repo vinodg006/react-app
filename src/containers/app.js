@@ -258,6 +258,22 @@ class App extends React.Component {
       }
       case mapNames.Shift: {
         console.log("4");
+        if (confirm("Are you sure you want to save ?")) {
+          let dataArr = [];
+          fileData.forEach((val, index) => {
+            const time50 = (val.end - val.start) * 0.5 + val.start;
+            if (
+              time50 >= shift.start_time &&
+              time50 <= shift.end_time &&
+              (val.type == mapFunctions[shift.function] ||
+                shift.function == "All inputs")
+            ) {
+              dataArr.push({ data: fileData[index], index });
+            }
+          });
+          console.log(dataArr, "data");
+        }
+        console.log(fileData);
         break;
       }
       case mapNames.Amplitude: {
