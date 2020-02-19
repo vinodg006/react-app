@@ -147,7 +147,11 @@ class App extends React.Component {
                 type="number"
                 className="input-text"
                 onChange={e => this.handleStart(e, mapNames[name])}
-                value={this.state[mapNames[name]].start_time}
+                value={
+                  this.state[mapNames[name]].scope === "Whole File"
+                    ? this.state.start_time
+                    : this.state[mapNames[name]].start_time
+                }
                 disabled={this.state[mapNames[name]].scope === "Whole File"}
               />
             </div>
@@ -159,7 +163,11 @@ class App extends React.Component {
                 type="number"
                 className="input-text"
                 onChange={e => this.handleStop(e, mapNames[name])}
-                value={this.state[mapNames[name]].end_time}
+                value={
+                  this.state[mapNames[name]].scope === "Whole File"
+                    ? this.state.end_time
+                    : this.state[mapNames[name]].end_time
+                }
                 disabled={this.state[mapNames[name]].scope === "Whole File"}
               />
             </div>
@@ -201,16 +209,15 @@ class App extends React.Component {
     switch (e.target.id) {
       case mapNames.Mute: {
         if (confirm("Are you sure you want to save ?")) {
-          fileData = fileData.filter(
-            val =>
-              !(
-                val.start >= mute.start_time &&
-                val.end <= mute.end_time &&
-                val.end - mute.end_time < mute.end_time - val.start &&
-                (val.type == mapFunctions[mute.function] ||
-                  mute.function == "All inputs")
-              )
-          );
+          fileData = fileData.filter(val => {
+            const time50 = (val.end - val.start) * 0.5 + val.start;
+            return !(
+              time50 >= mute.start_time &&
+              time50 <= mute.end_time &&
+              (val.type == mapFunctions[mute.function] ||
+                mute.function == "All inputs")
+            );
+          });
           console.log(fileData);
         }
         break;
@@ -218,12 +225,10 @@ class App extends React.Component {
       case mapNames.Neutral: {
         if (confirm("Are you sure you want to save ?")) {
           fileData.forEach((val, index) => {
-            const startDiff = neutral.end_time - val.start;
-            const endDiff = val.end - neutral.end_time;
+            const time50 = (val.end - val.start) * 0.5 + val.start;
             if (
-              val.start >= neutral.start_time &&
-              val.end <= neutral.end_time &&
-              endDiff < startDiff &&
+              time50 >= neutral.start_time &&
+              time50 <= neutral.end_time &&
               val.type == "R"
             ) {
               fileData[index].lastdata = 0.5;
@@ -235,56 +240,19 @@ class App extends React.Component {
       }
       case mapNames["Expand/Contract"]: {
         console.log("3");
-        if (confirm("Are you sure you want to save ?")) {
-          if (expand_contract.function == "Pitch") {
-            let dataArr = [];
-            fileData.forEach((val, index) => {
-              const startDiff = expand_contract.end_time - val.start;
-              const endDiff = val.end - expand_contract.end_time;
-              if (
-                val.start >= expand_contract.start_time &&
-                val.end <= expand_contract.end_time &&
-                endDiff < startDiff &&
-                val.type == "TE"
-              ) {
-                dataArr.push({ data: fileData[index], index });
-              }
-            });
-            console.log(dataArr, "data");
-          }
-        }
-        console.log(fileData);
         break;
       }
       case mapNames.Shift: {
         console.log("4");
-        if (confirm("Are you sure you want to save ?")) {
-          let dataArr = [];
-          fileData.forEach((val, index) => {
-            const time50 = (val.end - val.start) * 0.5 + val.start;
-            if (
-              time50 >= shift.start_time &&
-              time50 <= shift.end_time &&
-              (val.type == mapFunctions[shift.function] ||
-                shift.function == "All inputs")
-            ) {
-              dataArr.push({ data: fileData[index], index });
-            }
-          });
-          console.log(dataArr, "data");
-        }
-        console.log(fileData);
         break;
       }
       case mapNames.Amplitude: {
         if (confirm("Are you sure you want to save ?")) {
           fileData.forEach((val, index) => {
-            const startDiff = amplitude.end_time - val.start;
-            const endDiff = val.end - amplitude.end_time;
+            const time50 = (val.end - val.start) * 0.5 + val.start;
             if (
-              val.start >= amplitude.start_time &&
-              val.end <= amplitude.end_time &&
-              endDiff < startDiff &&
+              time50 >= amplitude.start_time &&
+              time50 <= amplitude.end_time &&
               val.type == "R"
             ) {
               let newValue;
