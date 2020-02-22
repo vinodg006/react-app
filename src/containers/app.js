@@ -47,7 +47,7 @@ class App extends React.Component {
       expand_contract: {
         function: "Roll",
         scope: "Whole File",
-        params: { multiplier: 1 },
+        params: { multiplier: 1, origin: "Start" },
         start_time: 0,
         end_time: 0
       },
@@ -97,6 +97,15 @@ class App extends React.Component {
       [name]: {
         ...this.state[name],
         params: { ...this.state[name].params, [param]: +e.target.value }
+      }
+    });
+  }
+
+  onOriginChange(e) {
+    this.setState({
+      expand_contract: {
+        ...this.state.expand_contract,
+        params: { ...this.state.expand_contract.params, origin: e.target.value }
       }
     });
   }
@@ -179,12 +188,32 @@ class App extends React.Component {
               <div className="option-container">
                 <div style={{ display: "table-cell" }}>{val}:</div>
                 <div style={{ display: "table-cell" }}>
-                  <input
-                    type="number"
-                    className="input-text"
-                    onChange={e => this.handleParam(e, mapNames[name], val)}
-                    value={this.state[mapNames[name]].params[val]}
-                  />
+                  {val == "Origin" ? (
+                    ["Start", "End", "Middle"].map(val => (
+                      <div key={index} className="option-container">
+                        <div style={{ display: "table-cell" }}>
+                          <input
+                            type="radio"
+                            className="input-radio"
+                            key={`${name}-${val}`}
+                            value={val}
+                            checked={
+                              this.state.expand_contract.params.origin === val
+                            }
+                            onChange={e => this.onOriginChange(e)}
+                          />
+                        </div>
+                        <div style={{ display: "table-cell" }}>{val}</div>
+                      </div>
+                    ))
+                  ) : (
+                    <input
+                      type="number"
+                      className="input-text"
+                      onChange={e => this.handleParam(e, mapNames[name], val)}
+                      value={this.state[mapNames[name]].params[val]}
+                    />
+                  )}
                 </div>
               </div>
             ))}
@@ -239,11 +268,212 @@ class App extends React.Component {
         break;
       }
       case mapNames["Expand/Contract"]: {
-        console.log("3");
+        if (confirm("Are you sure you want to save ?")) {
+          if (expand_contract.function == "Roll") {
+            if (expand_contract.params.origin == "Start") {
+              let firstDataChecked = false,
+                lastIndex,
+                lastEndVal;
+              fileData.forEach((val, index) => {
+                const time50 = (val.end - val.start) * 0.5 + val.start;
+                if (
+                  time50 >= expand_contract.start_time &&
+                  time50 <= expand_contract.end_time &&
+                  val.type == "R"
+                ) {
+                  const diff = val.end - val.start;
+                  if (!firstDataChecked) {
+                    firstDataChecked = true;
+                  } else if (firstDataChecked) {
+                    val.start = fileData[index - 1].end;
+                  }
+                  lastEndVal = val.end;
+                  val.end = +(
+                    val.start +
+                    diff * expand_contract.params.multiplier
+                  ).toFixed(3);
+                  lastIndex = index;
+                }
+              });
+              //if adjacent data match
+              if (
+                expand_contract.params.multiplier < 1 &&
+                fileData[lastIndex + 1].start == lastEndVal
+              ) {
+                fileData[lastIndex + 1].start = fileData[lastIndex].end;
+              }
+              //delete duplicate
+              else if (expand_contract.params.multiplier > 1) {
+                fileData = fileData.filter((val, index) => {
+                  return !(
+                    index > lastIndex && val.end <= fileData[lastIndex].end
+                  );
+                });
+              }
+            } else if (expand_contract.params.origin == "End") {
+              let firstIndex = -1,
+                firstVal,
+                lastIndex = -1,
+                firstDataChecked = false;
+              fileData.forEach((val, index) => {
+                const time50 = (val.end - val.start) * 0.5 + val.start;
+                if (
+                  time50 >= expand_contract.start_time &&
+                  time50 <= expand_contract.end_time &&
+                  val.type == "R"
+                ) {
+                  if (firstIndex == -1) {
+                    firstIndex = index;
+                    firstVal = val.start;
+                  }
+                  lastIndex = index;
+                }
+              });
+              while (lastIndex >= firstIndex) {
+                const diff =
+                  fileData[lastIndex].end - fileData[lastIndex].start;
+                if (!firstDataChecked) {
+                  firstDataChecked = true;
+                } else if (firstDataChecked) {
+                  fileData[lastIndex].end = fileData[lastIndex + 1].start;
+                }
+                fileData[lastIndex].start = +(
+                  fileData[lastIndex].end -
+                  diff * expand_contract.params.multiplier
+                ).toFixed(3);
+
+                lastIndex--;
+              }
+              //delete duplicate
+              if (expand_contract.params.multiplier > 1) {
+                fileData = fileData.filter((val, index) => {
+                  return !(
+                    index < firstIndex &&
+                    val.start >= fileData[firstIndex].start
+                  );
+                });
+              }
+              //if adjacent data match
+              if (
+                expand_contract.params.multiplier < 1 &&
+                fileData[firstIndex - 1].end == firstVal
+              ) {
+                fileData[firstIndex - 1].end = fileData[firstIndex].start;
+              }
+            } else if (expand_contract.params.origin == "Middle") {
+              let firstIndex = -1,
+                lastIndex = -1,
+                middleIndex = -1;
+              fileData.forEach((val, index) => {
+                const time50 = (val.end - val.start) * 0.5 + val.start;
+                if (
+                  time50 >= expand_contract.start_time &&
+                  time50 <= expand_contract.end_time &&
+                  val.type == "R"
+                ) {
+                  if (firstIndex == -1) {
+                    firstIndex = index;
+                  }
+                  lastIndex = index;
+                }
+              });
+              const totalDur =
+                fileData[lastIndex].end - fileData[firstIndex].start;
+              const pivot = fileData[firstIndex].start + totalDur / 2;
+              fileData.forEach((val, index) => {
+                if (
+                  index <= lastIndex &&
+                  val.start <= pivot &&
+                  val.end >= pivot
+                ) {
+                  middleIndex = index;
+                }
+              });
+              const magnitude = +(
+                (fileData[middleIndex].end - fileData[middleIndex].start) *
+                expand_contract.params.multiplier *
+                0.5
+              ).toFixed(3);
+              fileData[middleIndex].start += magnitude;
+              fileData[middleIndex].end -= magnitude;
+            }
+          }
+        }
+        console.log(fileData);
         break;
       }
       case mapNames.Shift: {
-        console.log("4");
+        if (confirm("Are you sure you want to save ?")) {
+          let newStart = -1,
+            newStop = -1;
+          fileData.forEach((val, index) => {
+            const time50 = (val.end - val.start) * 0.5 + val.start;
+            const startFormat = +(val.start + shift.params.time).toFixed(3);
+            const endFormat = +(val.end + shift.params.time).toFixed(3);
+            if (
+              time50 >= shift.start_time &&
+              time50 <= shift.end_time &&
+              (val.type == mapFunctions[shift.function] ||
+                shift.function == "All inputs")
+            ) {
+              if (newStart == -1) {
+                newStart = {
+                  value: startFormat,
+                  index
+                };
+              }
+              fileData[index].start = startFormat;
+              fileData[index].end = endFormat;
+            } else if (newStart != -1 && newStop == -1) {
+              newStop = {
+                value: fileData[index - 1].end,
+                index
+              };
+              //adjust next line's start time to last dataset's end time
+              if (val.start == newStop.value - shift.params.time) {
+                fileData[index].start = newStop.value;
+              }
+            }
+          });
+          let isStartChecked = false;
+          fileData = fileData.filter((val, index) => {
+            if (shift.params.time < 0) {
+              //adjust previous line's end time to start dataset's start time
+              if (
+                index < newStart.index &&
+                val.start >= newStart.value &&
+                val.end <= newStop.value
+              ) {
+                if (!isStartChecked && val.start == fileData[index - 1].end) {
+                  fileData[index - 1].end = newStart.value;
+                  isStartChecked = true;
+                }
+              }
+              return !(
+                index < newStart.index &&
+                val.start >= newStart.value &&
+                val.end <= newStop.value
+              );
+            } else {
+              if (
+                !isStartChecked &&
+                +(fileData[newStart.index].start - shift.params.time).toFixed(
+                  3
+                ) == fileData[newStart.index - 1].end
+              ) {
+                fileData[newStart.index - 1].end = newStart.value;
+                isStartChecked = true;
+              }
+
+              return !(
+                index > newStop.index &&
+                val.start >= newStart.value &&
+                val.end <= newStop.value
+              );
+            }
+          });
+        }
+        console.log(fileData);
         break;
       }
       case mapNames.Amplitude: {

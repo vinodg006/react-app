@@ -10,11 +10,11 @@ const pagedata = {
   expand_contract: {
     functions: ["Roll", "Pitch"],
     scope: ["Whole File", "Specific Section"],
-    params: ["multiplier"]
+    params: ["multiplier", "Origin"]
   },
   shift: {
     functions: ["All inputs", "Roll", "Pitch", "Tap", "Swipe"],
-    scope:["Whole File", "Specific Section"],
+    scope: ["Whole File", "Specific Section"],
     params: ["time"]
   },
   amplitude: {
