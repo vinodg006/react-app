@@ -211,7 +211,7 @@ class App extends React.Component {
                       type="number"
                       className="input-text"
                       onChange={e => this.handleParam(e, mapNames[name], val)}
-                      value={this.state[mapNames[name]].params[val]}
+                      defaultValue={this.state[mapNames[name]].params[val]}
                     />
                   )}
                 </div>
