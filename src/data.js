@@ -9,7 +9,7 @@ const pagedata = {
   },
   expand_contract: {
     functions: ["Roll", "Pitch"],
-    scope: ["Whole File", "Specific Section"],
+    scope: ["Specific Section"],
     params: ["multiplier", "Origin"]
   },
   shift: {

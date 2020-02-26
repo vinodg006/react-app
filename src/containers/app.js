@@ -27,6 +27,7 @@ class App extends React.Component {
     this.state = {
       start_time: 0,
       end_time: 0,
+      duration: 0,
       file: "",
       filename: "",
       saveAsFile1: "",
@@ -34,7 +35,7 @@ class App extends React.Component {
       saveCount: 0,
       mute: {
         function: "All inputs",
-        scope: "Whole File",
+        scope: "Specific Section",
         start_time: 0,
         end_time: 0
       },
@@ -46,7 +47,7 @@ class App extends React.Component {
       },
       expand_contract: {
         function: "Roll",
-        scope: "Whole File",
+        scope: "Specific Section",
         params: { multiplier: 1, origin: "Start" },
         start_time: 0,
         end_time: 0
@@ -135,7 +136,18 @@ class App extends React.Component {
         </div>
         <div className="column" id="column3">
           {rowdata.scope.map((val, index) => (
-            <div key={index} className="option-container">
+            <div
+              key={index}
+              className="option-container"
+              style={{
+                visibility:
+                  name == "Mute" &&
+                  this.state[mapNames[name]].function == "All inputs" &&
+                  val == "Whole File"
+                    ? "hidden"
+                    : "visible"
+              }}
+            >
               <div style={{ display: "table-cell" }}>
                 <input
                   type="radio"
@@ -158,7 +170,7 @@ class App extends React.Component {
                 onChange={e => this.handleStart(e, mapNames[name])}
                 value={
                   this.state[mapNames[name]].scope === "Whole File"
-                    ? this.state.start_time
+                    ? 0
                     : this.state[mapNames[name]].start_time
                 }
                 disabled={this.state[mapNames[name]].scope === "Whole File"}
@@ -516,6 +528,7 @@ class App extends React.Component {
     // Read file into memory
     reader.readAsText(targetfile);
     reader.onload = () => {
+      this.setState({ saveAsFile1: "" });
       const file = reader.result;
       let startIndex = -1,
         stopStoring = false;
@@ -558,6 +571,13 @@ class App extends React.Component {
           stopStoring = true;
           startIndex = index;
         }
+        if (line.match(/duration/g)) {
+          const duration = +line.slice(line.indexOf(":") + 1, -1);
+          console.log(duration, "dura");
+          this.setState({
+            duration
+          });
+        }
         if (startIndex !== -1 && index > startIndex) {
           const start = +line.slice(0, line.indexOf("|"));
           const linemstart = line.slice(line.indexOf("|") + 1);
@@ -576,6 +596,9 @@ class App extends React.Component {
           }
         }
       });
+      if (this.state.end_time == 0) {
+        this.setState({ end_time: this.state.duration });
+      }
       console.log(fileData, "Vinod");
     };
 
@@ -612,6 +635,9 @@ class App extends React.Component {
     let afterDecimal = number
       .toFixed(3)
       .slice(number.toString().indexOf(".") + 1);
+    if (Number.isInteger(number)) {
+      afterDecimal = "000";
+    }
     return beforeDecimal + "." + afterDecimal;
   }
 
