@@ -77,7 +77,12 @@ class App extends React.Component {
 
   onScopeChange(e, name) {
     this.setState({
-      [name]: { ...this.state[name], scope: e.target.value }
+      [name]: {
+        ...this.state[name],
+        scope: e.target.value,
+        start_time:
+          e.target.value == "Whole File" ? 0 : this.state[name].start_time
+      }
     });
   }
 
@@ -168,11 +173,7 @@ class App extends React.Component {
                 type="number"
                 className="input-text"
                 onChange={e => this.handleStart(e, mapNames[name])}
-                value={
-                  this.state[mapNames[name]].scope === "Whole File"
-                    ? 0
-                    : this.state[mapNames[name]].start_time
-                }
+                value={this.state[mapNames[name]].start_time}
                 disabled={this.state[mapNames[name]].scope === "Whole File"}
               />
             </div>
@@ -184,11 +185,7 @@ class App extends React.Component {
                 type="number"
                 className="input-text"
                 onChange={e => this.handleStop(e, mapNames[name])}
-                value={
-                  this.state[mapNames[name]].scope === "Whole File"
-                    ? this.state.end_time
-                    : this.state[mapNames[name]].end_time
-                }
+                value={this.state[mapNames[name]].end_time}
                 disabled={this.state[mapNames[name]].scope === "Whole File"}
               />
             </div>
@@ -528,7 +525,8 @@ class App extends React.Component {
     // Read file into memory
     reader.readAsText(targetfile);
     reader.onload = () => {
-      this.setState({ saveAsFile1: "" });
+      fileData = [];
+      this.setState({ saveAsFile1: "", saveAsFile2: "" });
       const file = reader.result;
       let startIndex = -1,
         stopStoring = false;
@@ -542,15 +540,15 @@ class App extends React.Component {
         if (line.match(/main_gameplay_start/g)) {
           const start_time = +line.slice(line.indexOf(":") + 1, -1);
           this.setState({
-            start_time,
-            mute: { ...this.state.mute, start_time },
-            neutral: { ...this.state.neutral, start_time },
-            expand_contract: {
-              ...this.state.expand_contract,
-              start_time
-            },
-            shift: { ...this.state.shift, start_time },
-            amplitude: { ...this.state.amplitude, start_time }
+            start_time
+            // mute: { ...this.state.mute, start_time },
+            // neutral: { ...this.state.neutral, start_time },
+            // expand_contract: {
+            //   ...this.state.expand_contract,
+            //   start_time
+            // },
+            // shift: { ...this.state.shift, start_time },
+            // amplitude: { ...this.state.amplitude, start_time }
           });
         }
         if (line.match(/main_gameplay_end/g)) {
